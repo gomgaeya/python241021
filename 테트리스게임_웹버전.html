@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테트리스 게임</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-board {
+            width: 300px;
+            height: 600px;
+            background-color: #000;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 1px;
+            border: 2px solid #333;
+        }
+        .tetromino {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #score, #level {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-board"></div>
+    <div id="score">점수: <span id="score-value">0</span></div>
+    <div id="level">레벨: <span id="level-value">1</span></div>
+    <script>
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+        const board = [];
+        let score = 0;
+        let level = 1;
+        let currentTetromino = null;
+        let gameInterval = null;
+
+        const SHAPES = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
+        ];
+
+        function initBoard() {
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                board[y] = [];
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    board[y][x] = 0;
+                }
+            }
+        }
+
+        function newTetromino() {
+            const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            const color = Math.floor(Math.random() * 7) + 1;
+            const x = Math.floor(BOARD_WIDTH / 2) - Math.floor(shape[0].length / 2);
+            const y = 0;
+
+            return { shape, color, x, y };
+        }
+
+        function drawBoard() {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('tetromino');
+                    cell.style.backgroundColor = board[y][x] ? `hsl(${board[y][x] * 50}, 100%, 50%)` : 'black';
+                    gameBoard.appendChild(cell);
+                }
+            }
+
+            if (currentTetromino) {
+                currentTetromino.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            const cell = gameBoard.children[(currentTetromino.y + y) * BOARD_WIDTH + (currentTetromino.x + x)];
+                            cell.style.backgroundColor = `hsl(${currentTetromino.color * 50}, 100%, 50%)`;
+                        }
+                    });
+                });
+            }
+        }
+
+        function moveDown() {
+            currentTetromino.y++;
+            if (checkCollision()) {
+                currentTetromino.y--;
+                placeTetromino();
+                clearLines();
+                currentTetromino = newTetromino();
+                if (checkCollision()) {
+                    gameOver();
+                }
+            }
+            drawBoard();
+        }
+
+        function moveLeft() {
+            currentTetromino.x--;
+            if (checkCollision()) {
+                currentTetromino.x++;
+            }
+            drawBoard();
+        }
+
+        function moveRight() {
+            currentTetromino.x++;
+            if (checkCollision()) {
+                currentTetromino.x--;
+            }
+            drawBoard();
+        }
+
+        function rotate() {
+            const rotated = currentTetromino.shape[0].map((_, index) =>
+                currentTetromino.shape.map(row => row[index]).reverse()
+            );
+            const previousShape = currentTetromino.shape;
+            currentTetromino.shape = rotated;
+            if (checkCollision()) {
+                currentTetromino.shape = previousShape;
+            }
+            drawBoard();
+        }
+
+        function checkCollision() {
+            return currentTetromino.shape.some((row, y) =>
+                row.some((value, x) =>
+                    value &&
+                    (currentTetromino.y + y >= BOARD_HEIGHT ||
+                    currentTetromino.x + x < 0 ||
+                    currentTetromino.x + x >= BOARD_WIDTH ||
+                    board[currentTetromino.y + y][currentTetromino.x + x])
+                )
+            );
+        }
+
+        function placeTetromino() {
+            currentTetromino.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        board[currentTetromino.y + y][currentTetromino.x + x] = currentTetromino.color;
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== 0)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    linesCleared++;
+                    y++;
+                }
+            }
+            if (linesCleared > 0) {
+                score += linesCleared * linesCleared * 100;
+                updateScore();
+                checkLevelUp();
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('score-value').textContent = score;
+        }
+
+        function checkLevelUp() {
+            const newLevel = Math.floor(score / 1000) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                document.getElementById('level-value').textContent = level;
+                clearInterval(gameInterval);
+                gameInterval = setInterval(moveDown, 1000 - (level - 1) * 50);
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            alert('게임 오버! 점수: ' + score);
+            initGame();
+        }
+
+        function initGame() {
+            initBoard();
+            score = 0;
+            level = 1;
+            updateScore();
+            document.getElementById('level-value').textContent = level;
+            currentTetromino = newTetromino();
+            clearInterval(gameInterval);
+            gameInterval = setInterval(moveDown, 1000);
+            drawBoard();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    moveLeft();
+                    break;
+                case 'ArrowRight':
+                    moveRight();
+                    break;
+                case 'ArrowDown':
+                    moveDown();
+                    break;
+                case 'ArrowUp':
+                    rotate();
+                    break;
+            }
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
