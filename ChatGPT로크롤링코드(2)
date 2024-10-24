@@ -1,0 +1,18 @@
+import requests
+from bs4 import BeautifulSoup
+
+# 네이버 검색 결과 URL
+url = 'https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=자동차'
+
+# 웹 페이지 가져오기
+headers = {'User-Agent': 'Mozilla/5.0'}
+response = requests.get(url, headers=headers)
+
+# BeautifulSoup으로 HTML 파싱
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# 기사 제목 크롤링
+titles = soup.select('a.news_tit')  # 네이버 뉴스 검색 결과에서 제목의 CSS 클래스
+
+for idx, title in enumerate(titles, 1):
+    print(f"{idx}. {title.get_text()}")  # 기사 제목 출력

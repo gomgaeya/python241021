@@ -6,7 +6,6 @@ import requests
 
 url = "https://www.daangn.com/fleamarket/"
 response = requests.get(url)
-
 #검색이 용이한 객체 생성
 soup = BeautifulSoup(response.text, "html.parser")
 

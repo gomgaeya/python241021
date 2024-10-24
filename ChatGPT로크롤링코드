@@ -1,0 +1,33 @@
+import requests
+from bs4 import BeautifulSoup
+from openpyxl import Workbook
+
+# 네이버 검색 결과 URL
+url = 'https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=반도체'
+
+# 웹 페이지 가져오기
+headers = {'User-Agent': 'Mozilla/5.0'}
+response = requests.get(url, headers=headers)
+
+# BeautifulSoup으로 HTML 파싱
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# 기사 제목 크롤링
+titles = soup.select('a.news_tit')  # 네이버 뉴스 검색 결과에서 제목의 CSS 클래스
+
+# Excel 파일 생성
+wb = Workbook()
+ws = wb.active
+ws.title = "News Titles"
+
+# 첫 번째 행에 헤더 추가
+ws.append(["번호", "기사 제목"])
+
+# 기사 제목을 Excel 파일에 저장
+for idx, title in enumerate(titles, 1):
+    ws.append([idx, title.get_text()])
+
+# Excel 파일 저장
+wb.save("results.xlsx")
+
+print("크롤링한 결과가 'results.xlsx' 파일로 저장되었습니다.")
