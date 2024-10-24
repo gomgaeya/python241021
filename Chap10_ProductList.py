@@ -95,7 +95,7 @@ class DemoForm(QMainWindow, form_class):
             itemID.setTextAlignment(Qt.AlignRight) 
             self.tableWidget.setItem(row, 0, itemID)
             
-            #제품명은 그대로 출력한다. 
+            #제품명은 그대로 출력한다.
             self.tableWidget.setItem(row, 1, QTableWidgetItem(item[1]))
             
             #각 열을 Item으로 생성해서 숫자를 오른쪽으로 정렬해서 출력한다. 
